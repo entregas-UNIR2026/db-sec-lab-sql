@@ -1,0 +1,34 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres:15
+    # 🛡️ Defensa: Puertos eliminados (no expuestos al host)
+    env_file: .env
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${PG_ADMIN_PASS}
+      # 🛡️ Defensa: Eliminado auth_method trust, usa md5/scram por defecto
+      POSTGRES_DB: postgres
+    volumes:
+      - ./init_postgres.sql:/docker-entrypoint-initdb.d/init.sql
+
+  mysql:
+    image: mysql:8
+    # 🛡️ Defensa: Puertos eliminados
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MY_ROOT_PASS}
+      # 🛡️ Defensa: Eliminado allow_empty_password
+      MYSQL_DATABASE: tienda
+    volumes:
+      - ./init_mysql.sql:/docker-entrypoint-initdb.d/init.sql
+
+  app:
+    image: python:3.11-slim
+    volumes: ["./app:/app"]
+    working_dir: /app
+    env_file: .env
+    command: ["sh", "-c", "pip install -r requirements.txt && python -u seguro.py"]
+    depends_on:
+      - postgres
+      - mysql
